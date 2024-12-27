@@ -17,8 +17,46 @@ user_sw = Button(plasma2040.USER_SW)
 button_a = Button(plasma2040.BUTTON_A)
 button_b = Button(plasma2040.BUTTON_B)
 
+class LedStrip(plasma.WS2812):
+    def __init__(self, leds, pio1, pio2, pin, brightness=1):
+        if brightness > 1 or brightness <= 0:
+            raise ValueError("Set brightness to a float between 0 and 1")
+        self.brightness = brightness
+        super().__init__(leds, pio1, pio2, pin)
+
+    def set_hsv(self, *args, **kwargs):
+        led, h, s, v = args
+        v *= self.brightness
+        super().set_hsv(led, h, s, v)
+
+    def set_rgb(self, *args, **kwargs):
+        led, r, g, b = args
+        r, g, b = r / 255, g / 255, b / 255
+
+        mx = max(r, g, b)
+        mn = min(r, g, b)
+        delta = mx - mn
+
+        # calculate hue
+        if delta == 0:
+          h = 0
+        elif mx == r:
+          h = (60 * (((g - b) / delta) % 6))
+        elif mx == g:
+          h = (60 * (((b - r) / delta) + 2))
+        else:
+          h = (60 * (((r - g) / delta) + 4))
+
+        # calculate saturation
+        s = 0 if mx == 0 else (delta / mx)
+
+        # calculate value
+        v = mx
+
+        self.set_hsv(led, h, s, v)
+
 # Pick LED type
-led_strip = plasma.WS2812(NUM_LEDS, 0, 0, plasma2040.DAT)  # WS2812 / NeoPixel™ LEDs
+led_strip = LedStrip(NUM_LEDS, 0, 0, plasma2040.DAT, brightness=1.0)  # WS2812 / NeoPixel™ LEDs
 
 # Timeout duration in milliseconds (e.g., 10000 ms = 10 seconds)
 TIMEOUT_DURATION = 20000
